@@ -61,6 +61,7 @@ module.exports = {
     extensions: ['.js', '.json'],
     alias: {
       src: path.resolve(paths.appSrc),
+      assets: path.resolve(paths.appSrc, 'assets'),
       locales: path.resolve(paths.appSrc, 'locales'),
       app: path.resolve(paths.appSrc, 'app'),
       config: path.resolve(paths.appSrc, 'config'),
@@ -88,7 +89,7 @@ module.exports = {
         include: paths.appSrc
       },
       {
-        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/],
+        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.glb$/],
         loader: require.resolve('url-loader'),
         options: {
           limit: 10000,
@@ -111,7 +112,6 @@ module.exports = {
                   loader: require.resolve('css-loader'),
                   options: {
                     modules: true,
-                    sourceMap: true,
                     localIdentName: '[name]__[local]___[hash:base64:5]',
                     importLoaders: 1,
                     minimize: true,
