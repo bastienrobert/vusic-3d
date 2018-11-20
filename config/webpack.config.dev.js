@@ -41,6 +41,7 @@ module.exports = {
     extensions: ['.js', '.json'],
     alias: {
       src: path.resolve(paths.appSrc),
+      assets: path.resolve(paths.appSrc, 'assets'),
       glsl: path.resolve(paths.appSrc, 'glsl'),
       locales: path.resolve(paths.appSrc, 'locales'),
       app: path.resolve(paths.appSrc, 'app'),
@@ -73,7 +74,7 @@ module.exports = {
         include: paths.appSrc
       },
       {
-        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/],
+        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.mp3/],
         loader: require.resolve('url-loader'),
         options: {
           limit: 10000,

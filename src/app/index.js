@@ -5,6 +5,9 @@ import * as THREE from 'three'
 import Stats from 'stats.js'
 import * as dat from 'dat.gui'
 
+import music from 'assets/Flamingosis - Midnight In Montreal.mp3'
+
+import Sound from 'components/Sound'
 import Building from 'components/Building'
 import Lamp from 'components/Lamp'
 
@@ -30,6 +33,9 @@ export default class App {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0xffffff)
     // this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
+
+    // Create sound
+    this.sound = new Sound(music, 95, 0, () => this.sound.play(), true)
 
     // Create camera and set default position
     this.camera = new THREE.PerspectiveCamera(
