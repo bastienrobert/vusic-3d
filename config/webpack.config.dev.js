@@ -41,7 +41,7 @@ module.exports = {
     extensions: ['.js', '.json'],
     alias: {
       src: path.resolve(paths.appSrc),
-      assets: path.resolve(paths.appSrc, 'assets'),
+      glsl: path.resolve(paths.appSrc, 'glsl'),
       locales: path.resolve(paths.appSrc, 'locales'),
       app: path.resolve(paths.appSrc, 'app'),
       config: path.resolve(paths.appSrc, 'config'),
@@ -73,12 +73,16 @@ module.exports = {
         include: paths.appSrc
       },
       {
-        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.glb$/],
+        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.obj$/, /\.mtl$/],
         loader: require.resolve('url-loader'),
         options: {
           limit: 10000,
           name: 'static/media/[name].[hash:8].[ext]'
         }
+      },
+      {
+        test: [/\.vert$/, /\.frag$/],
+        loader: 'webpack-glsl-loader'
       },
       {
         test: [/\.scss$/, /\.css$/],

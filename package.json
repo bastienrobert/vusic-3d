@@ -15,6 +15,7 @@
     "reset-css": "^4.0.1",
     "stats.js": "^0.17.0",
     "three": "^0.98.0",
+    "webpack-glsl-loader": "^1.0.1",
     "whatwg-fetch": "^2.0.4"
   },
   "devDependencies": {

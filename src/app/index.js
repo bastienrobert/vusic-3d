@@ -4,10 +4,11 @@ import 'reset-css'
 import * as THREE from 'three'
 import Stats from 'stats.js'
 import * as dat from 'dat.gui'
-import RobotExpressive from 'assets/RobotExpressive.glb'
+
+import Building from 'components/Building'
+import Lamp from 'components/Lamp'
 
 import 'utils/OrbitControls'
-import 'utils/GLTFLoader'
 
 export default class App {
   constructor() {
@@ -27,25 +28,25 @@ export default class App {
 
     // Create scene
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0xe0e0e0)
-    this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
+    this.scene.background = new THREE.Color(0xffffff)
+    // this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
 
     // Create camera and set default position
     this.camera = new THREE.PerspectiveCamera(
       100,
       window.innerWidth / window.innerHeight,
       0.1,
-      100
+      1000
     )
-    this.camera.position.set(-5, 3, 10)
+    this.camera.position.set(0, 120, 0)
     this.camera.lookAt(new THREE.Vector3(0, 2, 0))
 
     // Create clock
     this.clock = new THREE.Clock()
 
     // Create ambient light
-    const ambientLight = new THREE.AmbientLight(0x2a627f)
-    // const ambientLight = new THREE.AmbientLight(0xffffff)
+    // const ambientLight = new THREE.AmbientLight(0x2a627f)
+    const ambientLight = new THREE.AmbientLight(0x404040)
     this.scene.add(ambientLight)
 
     // Debug DirectionalLight
@@ -66,27 +67,12 @@ export default class App {
 
     // Setup meshes
     this.createGround()
-    this.createCharacter()
+    this.createBuildings()
+    this.createLights()
 
     window.addEventListener('resize', this.onResize.bind(this))
     this.onResize()
     this.renderer.setAnimationLoop(this.render.bind(this))
-  }
-
-  createCharacter() {
-    const loader = new THREE.GLTFLoader()
-    loader.load(
-      RobotExpressive,
-      gltf => {
-        this.model = gltf.scene
-        this.scene.add(this.model)
-        this.createGUI(gltf.animations)
-      },
-      undefined,
-      function(e) {
-        console.error(e)
-      }
-    )
   }
 
   createGround() {
@@ -105,18 +91,57 @@ export default class App {
     this.scene.add(grid)
   }
 
-  createGUI(animations) {
-    console.log(animations)
-    this.mixer = new THREE.AnimationMixer(this.model)
-    const clip = animations[0]
-    const action = this.mixer.clipAction(clip)
-    action.play()
+  createBuildings() {
+    this.buildings = []
+    this.lamps = []
+
+    for (let i = 0; i < 30; i++) {
+      for (let j = 0; j < 30; j++) {
+        const random = Math.random()
+        const x = i * 2 + i * 0.5 - 50
+        const z = j * 2 + j * 0.5 - 50
+        if (random < 0.95) {
+          const building = new Building()
+          building.mesh.position.set(x, 0, z)
+          this.buildings.push(building)
+          this.scene.add(building.mesh)
+        } else {
+          const lamp = new Lamp()
+          lamp.mesh.position.set(x, Math.random() * 10, z)
+          this.lamps.push(lamp)
+          this.scene.add(lamp.mesh)
+        }
+      }
+    }
+  }
+
+  createLights() {
+    this.lights = []
+
+    const sphere = new THREE.Mesh(
+      new THREE.SphereBufferGeometry(0.25, 16, 8),
+      new THREE.MeshBasicMaterial({ color: 0xf0d499 })
+    )
+
+    for (let i = 0; i < 10; i++) {
+      const light = new THREE.PointLight(0xeadfc5, 1, 50)
+      light.add(sphere)
+      light.position.set(
+        Math.random() * 30,
+        Math.random() * 15,
+        Math.random() * 30
+      )
+      this.lights.push(light)
+      this.scene.add(light)
+    }
   }
 
   render() {
-    const dt = this.clock.getDelta()
-    if (this.mixer) this.mixer.update(dt)
+    const et = this.clock.getElapsedTime()
     this.controls.update()
+    this.buildings.forEach((building, i) => {
+      building.mesh.position.y = Math.abs(Math.sin(et + i / 100)) * 10
+    })
     this.renderer.render(this.scene, this.camera)
     this.stats.update()
   }
