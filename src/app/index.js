@@ -35,7 +35,7 @@ export default class App {
     // this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
 
     // Create sound
-    this.sound = new Sound(music, 95, 0, () => this.sound.play(), true)
+    this.sound = new Sound(music, 95, 0, this.isLoaded.bind(this), false)
 
     // Create camera and set default position
     this.camera = new THREE.PerspectiveCamera(
@@ -98,11 +98,13 @@ export default class App {
   }
 
   createBuildings() {
+    const size = Math.sqrt(256 * 2)
+    console.log(size)
     this.buildings = []
     this.lamps = []
 
-    for (let i = 0; i < 30; i++) {
-      for (let j = 0; j < 30; j++) {
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
         const random = Math.random()
         const x = i * 2 + i * 0.5 - 50
         const z = j * 2 + j * 0.5 - 50
@@ -143,13 +145,18 @@ export default class App {
   }
 
   render() {
-    const et = this.clock.getElapsedTime()
+    // const et = this.clock.getElapsedTime()
+    const spectrum = this.sound.getSpectrum()
     this.controls.update()
     this.buildings.forEach((building, i) => {
-      building.mesh.position.y = Math.abs(Math.sin(et + i / 100)) * 10
+      building.mesh.position.y = (spectrum[Math.round(i / 2)] / 256) * 10
     })
     this.renderer.render(this.scene, this.camera)
     this.stats.update()
+  }
+
+  isLoaded() {
+    // this.sound.play()
   }
 
   onResize() {
