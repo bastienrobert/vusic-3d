@@ -6,11 +6,12 @@ import Stats from 'stats.js'
 import * as dat from 'dat.gui'
 import SimplexNoise from 'simplex-noise'
 
-import music from 'assets/Flamingosis - Midnight In Montreal.mp3'
+import music from 'assets/Topo & Roby - Under The Ice instrumental-GGjbjxmOW_4.mp3'
 import background from 'assets/background.jpg'
 
 import Building from 'components/Building'
 import Lamp from 'components/Lamp'
+import Bubble from 'components/Bubble'
 
 import Sound from 'utils/Sound'
 import 'utils/OrbitControls'
@@ -52,15 +53,14 @@ export default class App {
     this.simplex = new SimplexNoise()
 
     // Set spectrum duplicates
-    this.duplicates = 8
+    this.duplicates = 6
 
     // Create scene
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.TextureLoader().load(background)
     // this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
 
     // Create sound
-    this.sound = new Sound(music, 95, 0, this.isLoaded.bind(this), true)
+    this.sound = new Sound(music, 140, 0, this.isLoaded.bind(this), true)
 
     // Create camera and set default position
     this.camera = new THREE.PerspectiveCamera(
@@ -69,10 +69,8 @@ export default class App {
       0.1,
       1000
     )
-    // this.camera.position.set(0, 120, 0)
-    this.camera.position.set(88, 44, -42)
-    // this.camera.position.set(85, 37, -32)
-    this.camera.lookAt(new THREE.Vector3(0, 2, 0))
+    this.camera.position.set(54.5, 34, -49.5)
+    this.camera.rotation.set(-1.62, 1.04, 2.68)
 
     // Create clock
     this.clock = new THREE.Clock()
@@ -99,8 +97,9 @@ export default class App {
 
     // Setup meshes
     this.createGround()
+    this.createDecor()
     this.createBuildings()
-    // this.createLights()
+    this.createBubbles()
 
     // Postprocessing
     this.initPostprocessing()
@@ -111,19 +110,23 @@ export default class App {
   }
 
   createGround() {
-    // Create ground
     const ground = new THREE.Mesh(
       new THREE.PlaneBufferGeometry(2000, 2000),
-      new THREE.MeshPhongMaterial({ color: 0xffffff, depthWrite: false })
+      new THREE.MeshPhongMaterial({ color: 0x072b44 })
     )
     ground.rotation.x = -Math.PI / 2
     this.scene.add(ground)
+  }
 
-    // Grid helper
-    const grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000)
-    grid.material.opacity = 0.2
-    grid.material.transparent = true
-    this.scene.add(grid)
+  createDecor() {
+    const geometry = new THREE.SphereBufferGeometry(200, 30, 30)
+    const material = new THREE.MeshBasicMaterial({
+      map: new THREE.TextureLoader().load(background)
+    })
+    material.side = THREE.BackSide
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.rotation.z = Math.PI
+    this.scene.add(mesh)
   }
 
   createBuildings() {
@@ -154,24 +157,13 @@ export default class App {
     }
   }
 
-  createLights() {
-    this.lights = []
+  createBubbles() {
+    this.bubbles = []
 
-    const sphere = new THREE.Mesh(
-      new THREE.SphereBufferGeometry(0.25, 16, 8),
-      new THREE.MeshBasicMaterial({ color: 0xf0d499 })
-    )
-
-    for (let i = 0; i < 10; i++) {
-      const light = new THREE.PointLight(0xeadfc5, 1, 50)
-      light.add(sphere)
-      light.position.set(
-        Math.random() * 30,
-        Math.random() * 15,
-        Math.random() * 30
-      )
-      this.lights.push(light)
-      this.scene.add(light)
+    for (let i = 0; i < 20; i++) {
+      const bubble = new Bubble()
+      this.bubbles.push(bubble)
+      this.scene.add(bubble.light)
     }
   }
 
@@ -184,6 +176,18 @@ export default class App {
         (spectrum[Math.round(i / this.duplicates)] / 256) * 10 +
         this.simplex.noise2D(i * 200, i * 200 + et / 50) * 15
     })
+    this.bubbles.forEach((bubble, i) => {
+      bubble.light.position.x =
+        (bubble.light.position.x +
+          (this.simplex.noise2D(i, et / 50) / 2) *
+            this.options.global.velocity) %
+        50
+      bubble.light.position.z =
+        (bubble.light.position.z +
+          (this.simplex.noise2D(et / 50, i) / 2) *
+            this.options.global.velocity) %
+        50
+    })
     this.composer.render()
     this.stats.update()
   }
@@ -192,6 +196,21 @@ export default class App {
     this.sound.onceAt('end', this.sound.duration, () => {
       console.log('SOUND IS ENDED')
     })
+    this.sound
+      .createKick({
+        frequency: [160, 180],
+        threshold: 30,
+        decay: 5,
+        onKick: () => {
+          // this.bloomPass.threshold = 0.5
+          this.options.global.velocity = 3
+        },
+        offKick: () => {
+          // this.bloomPass.threshold = 0.75
+          this.options.global.velocity = 1
+        }
+      })
+      .on()
     this.sound.play()
   }
 
@@ -226,32 +245,34 @@ export default class App {
     this.shaderPass = new THREE.ShaderPass(THREE.FXAAShader)
     this.shaderPass.renderToScreen = true
 
-    this.composer.addPass(this.ssaoPass)
     this.composer.addPass(this.bloomPass)
+    this.composer.addPass(this.ssaoPass)
     this.composer.addPass(this.shaderPass)
   }
 
   createGUI() {
     this.gui = new dat.GUI()
     this.options = {
-      volume: 1,
-      muted: false,
-      bloomPass: { exposure: 1, threshold: 0.7, strength: 1.5, radius: 1 },
+      global: { velocity: 1 },
+      sound: { volume: 1, muted: false },
+      bloomPass: { exposure: 1, threshold: 0.7, strength: 0.8, radius: 0.8 },
       ssaoPass: { onlyAO: false, radius: 32, aoClamp: 0.25, lumInfluence: 0.7 }
     }
 
+    const global = this.gui.addFolder('Global')
     const sound = this.gui.addFolder('Sound')
     const bloomPass = this.gui.addFolder('BloomPass')
     const ssaoPass = this.gui.addFolder('SSAOPass')
 
-    sound.open()
-    ssaoPass.open()
+    global.open()
+    // sound.open()
+    // ssaoPass.open()
     // bloomPass.open()
 
-    this.sound.volume = this.options.volume
+    global.add(this.options.global, 'velocity', 1, 4, 0.1).listen()
 
     sound
-      .add(this.options, 'volume', 0, 1, 0.1)
+      .add(this.options.sound, 'volume', 0, 1, 0.1)
       .listen()
       .onChange(value => {
         this.options.muted = value <= 0
@@ -259,7 +280,7 @@ export default class App {
       })
 
     sound
-      .add(this.options, 'muted')
+      .add(this.options.sound, 'muted')
       .listen()
       .onChange(value => {
         this.sound.volume = value ? 0 : 1
@@ -276,6 +297,7 @@ export default class App {
       .onChange(value => {
         this.bloomPass.threshold = value
       })
+      .listen()
     bloomPass
       .add(this.options.bloomPass, 'strength', 0, 3, 0.1)
       .onChange(value => {

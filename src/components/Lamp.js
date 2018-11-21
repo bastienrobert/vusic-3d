@@ -5,7 +5,8 @@ export default class Lamp {
     this.geometry = new THREE.BoxBufferGeometry(2, 20, 2)
     this.material = new THREE.MeshPhongMaterial({
       color: 0xaaf5f9,
-      specular: 0xaaf5f9
+      specular: 0xaaf5f9,
+      shininess: 100
     })
 
     this.mesh = new THREE.Mesh(this.geometry, this.material)
