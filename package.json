@@ -13,8 +13,10 @@
     "dat.gui": "^0.7.3",
     "promise": "^8.0.1",
     "reset-css": "^4.0.1",
+    "simplex-noise": "^2.4.0",
     "stats.js": "^0.17.0",
     "three": "^0.98.0",
+    "three-shader-fxaa": "^5.1.1",
     "webpack-glsl-loader": "^1.0.1",
     "whatwg-fetch": "^2.0.4"
   },
