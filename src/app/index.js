@@ -25,14 +25,14 @@ import 'utils/FXAAShader'
 import 'utils/MaskPass'
 import 'utils/SSAOShader'
 import 'utils/SSAOPass'
+import 'utils/BokehShader'
+import 'utils/BokehPass'
 
 export default class App {
   constructor() {
     this.container = document.createElement('div')
     this.container.id = 'app'
     document.body.appendChild(this.container)
-
-    window.THREE = THREE
 
     this.viewport = {
       width: 0,
@@ -53,24 +53,24 @@ export default class App {
     this.simplex = new SimplexNoise()
 
     // Set spectrum duplicates
-    this.duplicates = 6
+    this.duplicates = 10
 
     // Create scene
     this.scene = new THREE.Scene()
     // this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
 
     // Create sound
-    this.sound = new Sound(music, 140, 0, this.isLoaded.bind(this), true)
+    this.sound = new Sound(music, 140, 0, this.isLoaded.bind(this), false)
 
     // Create camera and set default position
     this.camera = new THREE.PerspectiveCamera(
-      70,
+      75,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     )
-    this.camera.position.set(54.5, 34, -49.5)
-    this.camera.rotation.set(-1.62, 1.04, 2.68)
+    this.camera.position.set(76.6804, 41.9298, -45.498)
+    this.camera.rotation.set(-2.5089, 0.9371, 2.6079)
 
     // Create clock
     this.clock = new THREE.Clock()
@@ -96,7 +96,7 @@ export default class App {
     this.controls = new THREE.OrbitControls(this.camera)
 
     // Setup meshes
-    this.createGround()
+    // this.createGround()
     this.createDecor()
     this.createBuildings()
     this.createBubbles()
@@ -135,35 +135,36 @@ export default class App {
     this.lamps = []
     this.objects = []
 
+    const building = new Building()
+    const lamp = new Lamp()
+
     for (let i = 0; i <= size; i++) {
       for (let j = 0; j <= size; j++) {
         const random = Math.random()
         const x = i * 2 + i * 0.5 - 50
         const z = j * 2 + j * 0.5 - 50
+        const clone = random < 0.95 ? building.mesh.clone() : lamp.mesh.clone()
         if (random < 0.95) {
-          const building = new Building()
-          building.mesh.position.set(x, 0, z)
-          this.buildings.push(building)
-          this.objects.push(building)
-          this.scene.add(building.mesh)
+          clone.position.set(x, 0, z)
+          this.buildings.push(clone)
         } else {
-          const lamp = new Lamp()
-          lamp.mesh.position.set(x, Math.random() * 10, z)
-          this.lamps.push(lamp)
-          this.objects.push(lamp)
-          this.scene.add(lamp.mesh)
+          clone.position.set(x, Math.random() * 10, z)
+          this.lamps.push(clone)
         }
+        this.objects.push(clone)
+        this.scene.add(clone)
       }
     }
   }
 
   createBubbles() {
     this.bubbles = []
+    const bubble = new Bubble()
 
     for (let i = 0; i < 20; i++) {
-      const bubble = new Bubble()
-      this.bubbles.push(bubble)
-      this.scene.add(bubble.light)
+      const clone = bubble.light.clone()
+      this.bubbles.push(clone)
+      this.scene.add(clone)
     }
   }
 
@@ -172,18 +173,18 @@ export default class App {
     const spectrum = this.sound.getSpectrum()
     this.controls.update()
     this.objects.forEach((object, i) => {
-      object.mesh.position.y =
+      object.position.y =
         (spectrum[Math.round(i / this.duplicates)] / 256) * 10 +
         this.simplex.noise2D(i * 200, i * 200 + et / 50) * 15
     })
     this.bubbles.forEach((bubble, i) => {
-      bubble.light.position.x =
-        (bubble.light.position.x +
+      bubble.position.x =
+        (bubble.position.x +
           (this.simplex.noise2D(i, et / 50) / 2) *
             this.options.global.velocity) %
         50
-      bubble.light.position.z =
-        (bubble.light.position.z +
+      bubble.position.z =
+        (bubble.position.z +
           (this.simplex.noise2D(et / 50, i) / 2) *
             this.options.global.velocity) %
         50
@@ -221,6 +222,7 @@ export default class App {
     this.renderer.setSize(this.viewport.width, this.viewport.height)
     this.composer.setSize(this.viewport.width, this.viewport.height)
     this.ssaoPass.setSize(this.viewport.width, this.viewport.height)
+    this.bokehPass.setSize(this.viewport.width, this.viewport.height)
     this.shaderPass.setSize(this.viewport.width, this.viewport.height)
   }
 
@@ -243,17 +245,33 @@ export default class App {
     this.bloomPass.radius = this.options.bloomPass.radius
 
     this.shaderPass = new THREE.ShaderPass(THREE.FXAAShader)
-    this.shaderPass.renderToScreen = true
+
+    this.bokehPass = new THREE.BokehPass(this.scene, this.camera, {
+      focus: 1.0,
+      aperture: 0.025,
+      maxblur: 2.0
+    })
+    this.bokehPass.renderToScreen = true
+
+    this.matChanger()
 
     this.composer.addPass(this.bloomPass)
     this.composer.addPass(this.ssaoPass)
     this.composer.addPass(this.shaderPass)
+    this.composer.addPass(this.bokehPass)
   }
 
   createGUI() {
     this.gui = new dat.GUI()
     this.options = {
       global: { velocity: 1 },
+      bokeh: {
+        focus: 95,
+        aperture: 9,
+        maxblur: 1.0,
+        farClip: 1000,
+        nearClip: 0.1
+      },
       sound: { volume: 1, muted: false },
       bloomPass: { exposure: 1, threshold: 0.7, strength: 0.8, radius: 0.8 },
       ssaoPass: { onlyAO: false, radius: 32, aoClamp: 0.25, lumInfluence: 0.7 }
@@ -263,11 +281,13 @@ export default class App {
     const sound = this.gui.addFolder('Sound')
     const bloomPass = this.gui.addFolder('BloomPass')
     const ssaoPass = this.gui.addFolder('SSAOPass')
+    const bokehPass = this.gui.addFolder('Bokeh')
 
     global.open()
     // sound.open()
     // ssaoPass.open()
     // bloomPass.open()
+    // bokehPass.open()
 
     global.add(this.options.global, 'velocity', 1, 4, 0.1).listen()
 
@@ -321,5 +341,30 @@ export default class App {
     ssaoPass
       .add(this.options.ssaoPass, 'lumInfluence', 0, 1)
       .onChange(value => (this.ssaoPass.lumInfluence = value))
+
+    bokehPass
+      .add(this.options.bokeh, 'focus', 10.0, 3000.0, 10)
+      .onChange(this.matChanger.bind(this))
+    bokehPass
+      .add(this.options.bokeh, 'aperture', 0, 10, 0.1)
+      .onChange(this.matChanger.bind(this))
+    bokehPass
+      .add(this.options.bokeh, 'maxblur', 0.0, 3.0, 0.025)
+      .onChange(this.matChanger.bind(this))
+    bokehPass
+      .add(this.options.bokeh, 'nearClip', 0.1, 1000, 0.1)
+      .onChange(this.matChanger.bind(this))
+    bokehPass
+      .add(this.options.bokeh, 'farClip', 0.1, 1000, 0.1)
+      .onChange(this.matChanger.bind(this))
+  }
+
+  matChanger() {
+    this.bokehPass.uniforms['farClip'].value = this.options.bokeh.farClip
+    this.bokehPass.uniforms['nearClip'].value = this.options.bokeh.nearClip
+    this.bokehPass.uniforms['focus'].value = this.options.bokeh.focus
+    this.bokehPass.uniforms['aperture'].value =
+      this.options.bokeh.aperture * 0.00001
+    this.bokehPass.uniforms['maxblur'].value = this.options.bokeh.maxblur
   }
 }
