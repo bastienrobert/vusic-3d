@@ -81,6 +81,14 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
+              plugins: [
+                [
+                  'transform-react-jsx',
+                  {
+                    pragma: 'Peti.createElement'
+                  }
+                ]
+              ],
               presets: ['@babel/preset-env'],
               compact: true
             }
@@ -90,7 +98,7 @@ module.exports = {
         include: paths.appSrc
       },
       {
-        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.mp3/],
+        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.svg$/, /\.mp3/],
         loader: require.resolve('url-loader'),
         options: {
           limit: 10000,

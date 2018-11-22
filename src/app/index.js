@@ -1,4 +1,4 @@
-import './styles.scss'
+import css from './styles.scss'
 import 'reset-css'
 
 import * as THREE from 'three'
@@ -6,14 +6,17 @@ import Stats from 'stats.js'
 import * as dat from 'dat.gui'
 import SimplexNoise from 'simplex-noise'
 
-import music from 'assets/Topo & Roby - Under The Ice instrumental-GGjbjxmOW_4.mp3'
+// import music from 'assets/Topo & Roby - Under The Ice instrumental-GGjbjxmOW_4.mp3'
+import music from 'assets/Queen - Bohemian Rhapsody.mp3'
 import background from 'assets/background.jpg'
+import headset from 'assets/headset.svg'
 
 import Building from 'components/Building'
 import Lamp from 'components/Lamp'
 import Bubble from 'components/Bubble'
 
 import Sound from 'utils/Sound'
+import Peti from 'utils/Peti'
 import 'utils/OrbitControls'
 import 'utils/EffectComposer'
 import 'utils/RenderPass'
@@ -53,11 +56,14 @@ export default class App {
     this.simplex = new SimplexNoise()
 
     // Set spectrum duplicates
-    this.duplicates = 10
+    this.duplicates = 14
 
     // Create scene
     this.scene = new THREE.Scene()
     // this.scene.fog = new THREE.Fog(0xe0e0e0, 20, 100)
+
+    // Create homepage
+    this.initHome()
 
     // Create sound
     this.sound = new Sound(music, 140, 0, this.isLoaded.bind(this), false)
@@ -76,27 +82,51 @@ export default class App {
     this.clock = new THREE.Clock()
 
     // Create ambient light
+    // const ambientLight = new THREE.AmbientLight(0x404040)
     const ambientLight = new THREE.AmbientLight(0x404040)
     this.scene.add(ambientLight)
 
     // Debug DirectionalLight
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1)
-    directionalLight.position.set(10, 10, 0)
-    this.scene.add(directionalLight)
+    const goldDirectionalLight = new THREE.DirectionalLight(0xf0d499, 0.6)
+    goldDirectionalLight.position.set(90, 30, -65)
+    this.scene.add(goldDirectionalLight)
+    const blueDirectionalLight = new THREE.DirectionalLight(0x05679b, 1)
+    blueDirectionalLight.position.set(90, 30, -65)
+    this.scene.add(blueDirectionalLight)
+
+    // Spotlight
+    const leftSpotLight = new THREE.SpotLight(0x05679b, 1.75, 500, 1)
+    leftSpotLight.position.set(50, 50, 50)
+    this.scene.add(leftSpotLight)
+    const rightSpotLight = new THREE.SpotLight(0x05679b, 0.5, 500, 1)
+    rightSpotLight.position.set(0, 100, 0)
+    this.scene.add(rightSpotLight)
 
     // Create stats
     this.stats = new Stats()
     this.stats.showPanel(0)
-    document.body.appendChild(this.stats.dom)
+    // document.body.appendChild(this.stats.dom)
 
     // Create dat.gui
-    this.createGUI()
+    this.options = {
+      global: { velocity: 1 },
+      bokeh: {
+        focus: 95,
+        aperture: 1.5,
+        maxblur: 3.0,
+        farClip: 1000,
+        nearClip: 0.1
+      },
+      sound: { volume: 1, muted: false },
+      bloomPass: { exposure: 1, threshold: 0.7, strength: 0.8, radius: 0.8 },
+      ssaoPass: { onlyAO: false, radius: 32, aoClamp: 0.25, lumInfluence: 0.7 }
+    }
+    // this.createGUI()
 
     // Create OrbitControls and plug it to camera
     this.controls = new THREE.OrbitControls(this.camera)
 
     // Setup meshes
-    // this.createGround()
     this.createDecor()
     this.createBuildings()
     this.createBubbles()
@@ -107,15 +137,6 @@ export default class App {
     window.addEventListener('resize', this.onResize.bind(this))
     this.onResize()
     this.renderer.setAnimationLoop(this.render.bind(this))
-  }
-
-  createGround() {
-    const ground = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(2000, 2000),
-      new THREE.MeshPhongMaterial({ color: 0x072b44 })
-    )
-    ground.rotation.x = -Math.PI / 2
-    this.scene.add(ground)
   }
 
   createDecor() {
@@ -130,7 +151,7 @@ export default class App {
   }
 
   createBuildings() {
-    const size = Math.floor(Math.sqrt(256 * this.duplicates))
+    const size = Math.floor(Math.sqrt(170 * this.duplicates))
     this.buildings = []
     this.lamps = []
     this.objects = []
@@ -182,37 +203,43 @@ export default class App {
         (bubble.position.x +
           (this.simplex.noise2D(i, et / 50) / 2) *
             this.options.global.velocity) %
-        50
+        100
       bubble.position.z =
         (bubble.position.z +
           (this.simplex.noise2D(et / 50, i) / 2) *
             this.options.global.velocity) %
-        50
+        100
     })
     this.composer.render()
-    this.stats.update()
+    // this.stats.update()
   }
 
   isLoaded() {
+    document.getElementById('button').disabled = false
     this.sound.onceAt('end', this.sound.duration, () => {
       console.log('SOUND IS ENDED')
     })
     this.sound
       .createKick({
-        frequency: [160, 180],
-        threshold: 30,
-        decay: 5,
+        frequency: [20, 40],
+        threshold: 90,
+        decay: 1,
         onKick: () => {
-          // this.bloomPass.threshold = 0.5
           this.options.global.velocity = 3
         },
         offKick: () => {
-          // this.bloomPass.threshold = 0.75
           this.options.global.velocity = 1
         }
       })
       .on()
-    this.sound.play()
+    this.sound.onceAt('white', 182.5, () => {
+      const mtl = Building.white()
+      this.buildings.forEach(mesh => (mesh.material = mtl))
+    })
+    this.sound.onceAt('black', 247.75, () => {
+      const mtl = Building.black()
+      this.buildings.forEach(mesh => (mesh.material = mtl))
+    })
   }
 
   onResize() {
@@ -230,7 +257,6 @@ export default class App {
     const renderPass = new THREE.RenderPass(this.scene, this.camera)
     this.composer = new THREE.EffectComposer(this.renderer)
     this.composer.setSize(this.viewport.width, this.viewport.height)
-    this.composer.addPass(renderPass)
 
     this.ssaoPass = new THREE.SSAOPass(this.scene, this.camera)
 
@@ -255,27 +281,37 @@ export default class App {
 
     this.matChanger()
 
+    this.composer.addPass(renderPass)
     this.composer.addPass(this.bloomPass)
     this.composer.addPass(this.ssaoPass)
     this.composer.addPass(this.shaderPass)
     this.composer.addPass(this.bokehPass)
   }
 
+  initHome() {
+    const home = (
+      <div className={css.Home} id="home">
+        <div className={css.container}>
+          <h1>Hello</h1>
+          <div>
+            <img src={headset} />
+            <p>Welcome, don't forget your headset !</p>
+          </div>
+          <button id="button" disabled>
+            Get started!
+          </button>
+        </div>
+      </div>
+    )
+    this.container.appendChild(home)
+    document.getElementById('button').addEventListener('click', () => {
+      document.getElementById('home').classList.add(css.hide)
+      this.sound.play()
+    })
+  }
+
   createGUI() {
     this.gui = new dat.GUI()
-    this.options = {
-      global: { velocity: 1 },
-      bokeh: {
-        focus: 95,
-        aperture: 9,
-        maxblur: 1.0,
-        farClip: 1000,
-        nearClip: 0.1
-      },
-      sound: { volume: 1, muted: false },
-      bloomPass: { exposure: 1, threshold: 0.7, strength: 0.8, radius: 0.8 },
-      ssaoPass: { onlyAO: false, radius: 32, aoClamp: 0.25, lumInfluence: 0.7 }
-    }
 
     const global = this.gui.addFolder('Global')
     const sound = this.gui.addFolder('Sound')
