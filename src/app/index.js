@@ -105,11 +105,18 @@ export default class App {
     // Create stats
     this.stats = new Stats()
     this.stats.showPanel(0)
-    // document.body.appendChild(this.stats.dom)
+    document.body.appendChild(this.stats.dom)
 
     // Create dat.gui
     this.options = {
-      global: { velocity: 1 },
+      global: {
+        velocity: 1,
+        opera: () => {
+          this.sound.pause()
+          this.sound.play(0)
+          this.sound.play(170)
+        }
+      },
       bokeh: {
         focus: 95,
         aperture: 1.5,
@@ -121,7 +128,7 @@ export default class App {
       bloomPass: { exposure: 1, threshold: 0.7, strength: 0.8, radius: 0.8 },
       ssaoPass: { onlyAO: false, radius: 32, aoClamp: 0.25, lumInfluence: 0.7 }
     }
-    // this.createGUI()
+    this.createGUI()
 
     // Create OrbitControls and plug it to camera
     this.controls = new THREE.OrbitControls(this.camera)
@@ -211,7 +218,7 @@ export default class App {
         100
     })
     this.composer.render()
-    // this.stats.update()
+    this.stats.update()
   }
 
   isLoaded() {
@@ -283,8 +290,8 @@ export default class App {
 
     this.composer.addPass(renderPass)
     this.composer.addPass(this.bloomPass)
-    this.composer.addPass(this.ssaoPass)
     this.composer.addPass(this.shaderPass)
+    this.composer.addPass(this.ssaoPass)
     this.composer.addPass(this.bokehPass)
   }
 
@@ -319,13 +326,15 @@ export default class App {
     const ssaoPass = this.gui.addFolder('SSAOPass')
     const bokehPass = this.gui.addFolder('Bokeh')
 
-    global.open()
+    // global.open()
     // sound.open()
     // ssaoPass.open()
     // bloomPass.open()
     // bokehPass.open()
+    this.gui.close()
 
     global.add(this.options.global, 'velocity', 1, 4, 0.1).listen()
+    global.add(this.options.global, 'opera')
 
     sound
       .add(this.options.sound, 'volume', 0, 1, 0.1)
